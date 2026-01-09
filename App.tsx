@@ -777,7 +777,7 @@ const App: React.FC = () => {
                       type={showDiscordId ? "text" : "password"}
                       placeholder="Enter your Discord ID"
                       value={discordIdInput}
-                      onChange={(e) => setDiscordIdInput(e.target.value)}
+                      onChange={(e) => setDiscordIdInput(e.target.value.replace(/\D/g, ''))}
                       className="w-full p-2.5 pr-10 bg-white border border-gray-200 rounded-lg text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-gray-400 hover:border-blue-400"
                     />
                     <button
