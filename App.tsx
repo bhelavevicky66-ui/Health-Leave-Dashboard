@@ -69,6 +69,7 @@ const App: React.FC = () => {
   const [houseInput, setHouseInput] = useState('');
   const [showDiscordId, setShowDiscordId] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [subFilter, setSubFilter] = useState<SubFilter>('total');
@@ -344,7 +345,11 @@ const App: React.FC = () => {
         house: houseInput,
         discordId: discordIdInput
       });
-      setShowUserProfile(false); // Optional: close on save, or just show success feedback
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        setShowUserProfile(false);
+      }, 2000);
     } catch (error) {
       console.error("Error updating profile:", error);
     } finally {
@@ -793,15 +798,25 @@ const App: React.FC = () => {
                 {/* Save Button */}
                 <button
                   onClick={handleSaveChanges}
-                  disabled={isSaving}
-                  className="w-full mt-2 py-3 bg-[#1a73e8] hover:bg-[#1557b0] text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={isSaving || saveSuccess}
+                  className={`w-full mt-2 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${saveSuccess
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-[#1a73e8] text-white hover:bg-[#1557b0]'
+                    }`}
                 >
                   {isSaving ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : saveSuccess ? (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Saved Data Successfully
+                    </>
                   ) : (
-                    <CheckCircle className="w-4 h-4" />
+                    <>
+                      <div className="w-4 h-4" /> {/* Spacer for alignment or icon if needed */}
+                      Save Changes
+                    </>
                   )}
-                  Save Changes
                 </button>
               </div>
 
