@@ -97,48 +97,55 @@ const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, onAppr
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm">
               {submission.status === 'Pending' ? (
-                rejectingId === submission.id ? (
-                  <div className="flex items-center gap-2">
-                    <div className="relative group">
-                      <input 
-                        type="text" 
-                        autoFocus
-                        placeholder="Why rejecting?" 
-                        className="text-[13px] bg-[#313338] text-gray-200 border-none rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#00a8fc] w-48 placeholder:text-[#949ba4]"
-                        value={rejectReason}
-                        onChange={(e) => setRejectReason(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleRejectSubmit(submission.id)}
-                      />
+                onApprove && onReject ? (
+                  // Only show action buttons if onApprove/onReject are provided (Admins only)
+                  rejectingId === submission.id ? (
+                    <div className="flex items-center gap-2">
+                      <div className="relative group">
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Why rejecting?"
+                          className="text-[13px] bg-[#313338] text-gray-200 border-none rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#00a8fc] w-48 placeholder:text-[#949ba4]"
+                          value={rejectReason}
+                          onChange={(e) => setRejectReason(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleRejectSubmit(submission.id)}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleRejectSubmit(submission.id)}
+                        className="p-2 bg-[#da373c] text-white rounded-md hover:bg-[#b22d31] transition-colors flex items-center justify-center shadow-sm"
+                        title="Confirm Rejection"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                        className="text-[13px] text-[#00a8fc] hover:underline font-medium px-1"
+                      >
+                        Cancel
+                      </button>
                     </div>
-                    <button 
-                      onClick={() => handleRejectSubmit(submission.id)}
-                      className="p-2 bg-[#da373c] text-white rounded-md hover:bg-[#b22d31] transition-colors flex items-center justify-center shadow-sm"
-                      title="Confirm Rejection"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => { setRejectingId(null); setRejectReason(''); }}
-                      className="text-[13px] text-[#00a8fc] hover:underline font-medium px-1"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => onApprove(submission.id)}
+                        className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-all shadow-sm active:scale-95"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => setRejectingId(submission.id)}
+                        className="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-all active:scale-95"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => onApprove(submission.id)}
-                      className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-all shadow-sm active:scale-95"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => setRejectingId(submission.id)}
-                      className="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-all active:scale-95"
-                    >
-                      Reject
-                    </button>
-                  </div>
+                  <span className="text-gray-400 text-xs italic">
+                    Pending Review
+                  </span>
                 )
               ) : (
                 <span className="text-gray-400 text-xs italic bg-gray-50 px-2 py-1 rounded">

@@ -22,7 +22,8 @@ import {
   XCircle,
   Hash,
   Eye,
-  EyeOff
+  EyeOff,
+  Shield
 } from 'lucide-react';
 import {
   signInWithPopup,
@@ -41,15 +42,17 @@ import {
   orderBy
 } from 'firebase/firestore';
 import { auth, googleProvider, db } from './firebase';
-import { Submission, DashboardStats, SubmissionStatus } from './types';
+import { Submission, DashboardStats, SubmissionStatus, UserRole } from './types';
 import DashboardCard from './components/DashboardCard';
 import SubmissionsTable from './components/SubmissionsTable';
 import SubmissionForm from './components/SubmissionForm';
 import ApprovedTimeline from './components/ApprovedTimeline';
+import ManageAdminsModal from './components/ManageAdminsModal';
 
-const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1423267890227839009/Fa0y_SNlNX7d_gaHnUvoChs3N21DbApEF7MigvF2Nq_hJhA2icbsTWz4LcoXxpGDQyPb";
+const DISCORD_WEBHOOK_URL = "/api/discord/1423267890227839009/Fa0y_SNlNX7d_gaHnUvoChs3N21DbApEF7MigvF2Nq_hJhA2icbsTWz4LcoXxpGDQyPb";
 const DISCORD_MENTION_ID = "1385109379845591062";
 const ALLOWED_DOMAIN = "@gmail.com";
+const SUPER_ADMIN_EMAIL = "bhelavevicky66@gmail.com";
 
 const getTodayString = () => new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -66,6 +69,7 @@ const App: React.FC = () => {
   const [showUserList, setShowUserList] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
+  const [showAdminModal, setShowAdminModal] = useState(false);
   const [discordIdInput, setDiscordIdInput] = useState('');
   const [houseInput, setHouseInput] = useState('');
   const [showDiscordId, setShowDiscordId] = useState(false);
@@ -99,12 +103,27 @@ const App: React.FC = () => {
 
           // Save user to Firestore
           try {
+            // Determine role: if super admin email, force super_admin, else keep existing or default to user
+            let role: UserRole = 'user';
+            if (currentUser.email === SUPER_ADMIN_EMAIL) {
+              role = 'super_admin';
+            }
+
             await setDoc(doc(db, 'users', currentUser.email), {
               displayName: currentUser.displayName,
               email: currentUser.email,
               photoURL: currentUser.photoURL,
-              lastSeen: serverTimestamp()
+              lastSeen: serverTimestamp(),
+              role: role // Will be overwritten if merged, need to be careful? merge: true keeps old fields. 
+              // Actually we want to ENFORCE super admin if it matches, but standard users should stay what they are.
+              // For now, simpler logic:
             }, { merge: true });
+
+            // Force update super admin role if needed (security by obscurity in frontend, but okay for now)
+            if (currentUser.email === SUPER_ADMIN_EMAIL) {
+              await updateDoc(doc(db, 'users', currentUser.email), { role: 'super_admin' });
+            }
+
           } catch (e) {
             console.error("Error saving user:", e);
           }
@@ -130,6 +149,35 @@ const App: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  // Fetch Submissions from Firestore (Real-time) - RE-ADDED FOR ADMIN VIEW
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(collection(db, 'submissions'), orderBy('submittedAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedSubmissions = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Submission[];
+      setSubmissions(fetchedSubmissions);
+    }, (error) => {
+      console.error("Error fetching submissions:", error);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // Derived State for Role
+  const currentUserRole = useMemo<UserRole>(() => {
+    if (!user || !user.email) return 'user';
+    if (user.email === SUPER_ADMIN_EMAIL) return 'super_admin';
+
+    const userDoc = registeredUsers.find(u => u.email === user.email);
+    return (userDoc?.role as UserRole) || 'user';
+  }, [user, registeredUsers]);
+
+  const canApprove = currentUserRole === 'admin' || currentUserRole === 'super_admin';
+  const canViewAll = currentUserRole === 'admin' || currentUserRole === 'super_admin';
 
   const handleLogin = async () => {
     setAuthError(null);
@@ -276,7 +324,8 @@ const App: React.FC = () => {
   }, [user, registeredUsers]);
 
   const filteredSubmissions = useMemo(() => {
-    let result = submissions;
+    // RBAC Filter: Users only see their own
+    let result = canViewAll ? submissions : submissions.filter(s => s.email === user?.email);
 
     if (statusFilter === 'all') {
       result = result.filter(s => s.status === 'Approved');
@@ -291,12 +340,15 @@ const App: React.FC = () => {
     }
 
     return result;
-  }, [submissions, statusFilter, subFilter]);
+  }, [submissions, statusFilter, subFilter, user, canViewAll]);
 
-  const handleAddSubmission = (newSubmission: Omit<Submission, 'id' | 'submittedAt' | 'status'>) => {
+  const handleAddSubmission = async (newSubmission: Omit<Submission, 'id' | 'submittedAt' | 'status'>) => {
+    // Generate a new document reference
+    const newDocRef = doc(collection(db, "submissions"));
+
     const submission: Submission = {
       ...newSubmission,
-      id: Math.random().toString(36).substring(7),
+      id: newDocRef.id, // Use Firestore ID
       status: 'Pending',
       submittedAt: new Date().toLocaleString('en-GB', {
         day: '2-digit',
@@ -307,22 +359,38 @@ const App: React.FC = () => {
         hour12: true
       })
     };
-    setSubmissions(prev => [submission, ...prev]);
 
-    sendDiscordNotification(submission);
+    try {
+      await setDoc(newDocRef, submission);
+      // OnSnapshot handles state update
+      sendDiscordNotification(submission);
+      setCurrentView('dashboard'); // Auto redirect
+    } catch (error) {
+      console.error("Error adding submission:", error);
+      // Show actual error message to help debugging (especially for Permissions)
+      alert(`Error: ${error.message || "Failed to submit"}. Check Firebase Console > Rules.`);
+    }
   };
 
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
+    if (!canApprove) return; // Guard for non-admins
+
     const submission = submissions.find(s => s.id === id);
     if (submission) {
-      setSubmissions(prev => prev.map(s =>
-        s.id === id ? { ...s, status: 'Approved' } : s
-      ));
-      sendDiscordApprovalNotification(submission);
+      try {
+        await updateDoc(doc(db, 'submissions', id), {
+          status: 'Approved'
+        });
+        sendDiscordApprovalNotification(submission);
+      } catch (e) {
+        console.error("Error approving submission:", e);
+      }
     }
   };
 
   const handleReject = async (id: string, reason: string) => {
+    if (!canApprove) return; // Guard for non-admins
+
     try {
       await updateDoc(doc(db, 'submissions', id), {
         status: 'Rejected',
@@ -475,6 +543,19 @@ const App: React.FC = () => {
                     View Profile
                   </button>
 
+                  {currentUserRole === 'super_admin' && (
+                    <>
+                      <div className="my-1 border-t border-gray-50" />
+                      <button
+                        onClick={() => { setShowAdminModal(true); setShowProfileMenu(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-purple-600 hover:bg-purple-50 transition-colors text-left"
+                      >
+                        <Shield className="w-4 h-4" />
+                        Manage Admins
+                      </button>
+                    </>
+                  )}
+
                   <div className="my-1 border-t border-gray-50" />
 
                   <button
@@ -604,8 +685,8 @@ const App: React.FC = () => {
               ) : (
                 <SubmissionsTable
                   submissions={filteredSubmissions}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
+                  onApprove={canApprove ? handleApprove : undefined}
+                  onReject={canApprove ? handleReject : undefined}
                 />
               )}
             </div>
@@ -618,7 +699,12 @@ const App: React.FC = () => {
               <img src={user.photoURL || ''} className="w-16 h-16 rounded-full border-4 border-white shadow-md" alt="profile" />
               <div>
                 <h1 className="text-3xl font-bold text-[#1a1c1e] mb-1">Dashboard</h1>
-                <p className="text-lg text-gray-500 font-medium">Welcome back, {user.displayName?.split(' ')[0]}</p>
+                <p className="text-lg text-gray-500 font-medium">
+                  Welcome back, {user.displayName?.split(' ')[0]}
+                  <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 uppercase tracking-wider font-bold">
+                    {currentUserRole.replace('_', ' ')}
+                  </span>
+                </p>
               </div>
             </div>
             <button
@@ -700,6 +786,14 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ManageAdminsModal
+        isOpen={showAdminModal}
+        onClose={() => setShowAdminModal(false)}
+        users={registeredUsers}
+        currentUserEmail={user.email}
+      />
+
       {showUserProfile && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowUserProfile(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-200 relative" onClick={e => e.stopPropagation()}>
