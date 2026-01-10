@@ -45,10 +45,11 @@ import { Submission, DashboardStats, SubmissionStatus } from './types';
 import DashboardCard from './components/DashboardCard';
 import SubmissionsTable from './components/SubmissionsTable';
 import SubmissionForm from './components/SubmissionForm';
+import ApprovedTimeline from './components/ApprovedTimeline';
 
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1423267890227839009/Fa0y_SNlNX7d_gaHnUvoChs3N21DbApEF7MigvF2Nq_hJhA2icbsTWz4LcoXxpGDQyPb";
 const DISCORD_MENTION_ID = "1385109379845591062";
-const ALLOWED_DOMAIN = "@navgurukul.org";
+const ALLOWED_DOMAIN = "@gmail.com";
 
 const getTodayString = () => new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -598,11 +599,15 @@ const App: React.FC = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <SubmissionsTable
-                submissions={filteredSubmissions}
-                onApprove={handleApprove}
-                onReject={handleReject}
-              />
+              {statusFilter === 'all' ? (
+                <ApprovedTimeline submissions={filteredSubmissions} />
+              ) : (
+                <SubmissionsTable
+                  submissions={filteredSubmissions}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                />
+              )}
             </div>
           </div>
         </main>
@@ -800,8 +805,8 @@ const App: React.FC = () => {
                   onClick={handleSaveChanges}
                   disabled={isSaving || saveSuccess}
                   className={`w-full mt-2 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${saveSuccess
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-[#1a73e8] text-white hover:bg-[#1557b0]'
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-[#1a73e8] text-white hover:bg-[#1557b0]'
                     }`}
                 >
                   {isSaving ? (
