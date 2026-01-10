@@ -309,8 +309,11 @@ const App: React.FC = () => {
   }, [registeredUsers]);
 
   useEffect(() => {
-    calculateStats(submissions);
-  }, [submissions, calculateStats]);
+    // If Admin/SuperAdmin, calculate stats for ALL submissions.
+    // If User, calculate stats ONLY for THEIR submissions.
+    const dataForStats = canViewAll ? submissions : submissions.filter(s => s.email === user?.email);
+    calculateStats(dataForStats);
+  }, [submissions, calculateStats, canViewAll, user]);
 
   // Sync inputs with DB when user data loads
   useEffect(() => {
@@ -361,9 +364,13 @@ const App: React.FC = () => {
     };
 
     try {
+      // 1. Send Discord Notification FIRST (as per request)
+      // This ensures the message goes even if the database fails due to permissions.
+      await sendDiscordNotification(submission);
+
+      // 2. Save to Firestore
       await setDoc(newDocRef, submission);
-      // OnSnapshot handles state update
-      sendDiscordNotification(submission);
+
       setCurrentView('dashboard'); // Auto redirect
     } catch (error) {
       console.error("Error adding submission:", error);
