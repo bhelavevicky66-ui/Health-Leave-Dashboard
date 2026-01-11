@@ -23,7 +23,8 @@ import {
   Hash,
   Eye,
   EyeOff,
-  Shield
+  Shield,
+  Trash2
 } from 'lucide-react';
 import {
   signInWithPopup,
@@ -39,7 +40,8 @@ import {
   updateDoc,
   serverTimestamp,
   query,
-  orderBy
+  orderBy,
+  deleteDoc
 } from 'firebase/firestore';
 import { auth, googleProvider, db } from './firebase';
 import { Submission, DashboardStats, SubmissionStatus, UserRole } from './types';
@@ -47,6 +49,7 @@ import DashboardCard from './components/DashboardCard';
 import SubmissionsTable from './components/SubmissionsTable';
 import SubmissionForm from './components/SubmissionForm';
 import ApprovedTimeline from './components/ApprovedTimeline';
+import WeeklyHoursList from './components/WeeklyHoursList';
 import ManageAdminsModal from './components/ManageAdminsModal';
 
 const DISCORD_WEBHOOK_URL = "/api/discord/1423267890227839009/Fa0y_SNlNX7d_gaHnUvoChs3N21DbApEF7MigvF2Nq_hJhA2icbsTWz4LcoXxpGDQyPb";
@@ -56,11 +59,29 @@ const SUPER_ADMIN_EMAIL = "bhelavevicky66@gmail.com";
 
 const getTodayString = () => new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
+const parseDurationToHours = (duration: string | undefined): number => {
+  if (!duration) return 0;
+  const d = duration.toLowerCase();
+  if (d.includes('1 day')) return 9; // User specified 9 hours
+  if (d.includes('first half')) return 4; // User specified 4 hours
+  if (d.includes('second half')) return 3; // User specified 3 hours
+  if (d.includes('half')) return 3; // Fallback for generic 'half' if needed, though specific halves are covered
+  if (d.includes('2 hours')) return 2;
+  if (d.includes('4 hours')) return 4;
+  if (d.includes('1 hour')) return 1;
+
+  // Try parsing "X hours"
+  const match = d.match(/(\d+)\s*hour/);
+  if (match) return parseInt(match[1], 10);
+
+  return 0;
+};
+
 const INITIAL_DATA: Submission[] = [];
 
 type View = 'dashboard' | 'form' | 'submissions';
 type StatusFilter = 'all' | SubmissionStatus;
-type SubFilter = 'total' | 'today' | 'weekly' | 'fullDay';
+type SubFilter = 'total' | 'today' | 'weekly' | 'weeklyHours';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -90,7 +111,8 @@ const App: React.FC = () => {
     campusTotal: 37,
     todayApproved: 0,
     weeklyApproved: 0,
-    fullDayApproved: 0
+    fullDayApproved: 0,
+    weeklyApprovedHours: 0
   });
 
   // Handle Auth State with Domain Restriction
@@ -179,6 +201,7 @@ const App: React.FC = () => {
 
   const canApprove = currentUserRole === 'admin' || currentUserRole === 'super_admin';
   const canViewAll = currentUserRole === 'admin' || currentUserRole === 'super_admin';
+  const canDelete = currentUserRole === 'super_admin';
 
   const handleLogin = async () => {
     setAuthError(null);
@@ -198,12 +221,16 @@ const App: React.FC = () => {
   };
 
   const sendDiscordNotification = async (submission: Submission) => {
+    // Find the user's Discord ID
+    const user = registeredUsers.find(u => u.email === submission.email);
+    const mention = user?.discordId ? `<@${user.discordId}>` : `**${submission.studentName}**`;
+
     const payload = {
       username: "Campus Health Leave",
       avatar_url: "https://cdn-icons-png.flaticon.com/512/3063/3063191.png",
       embeds: [{
         title: "🆕 New Health Leave Application",
-        description: `A new leave request has been submitted and is awaiting review.\n\n<@${DISCORD_MENTION_ID}>`,
+        description: `A new leave request has been submitted and is awaiting review.\n\n${mention}`,
         color: 1733608,
         fields: [
           { name: "Student Name", value: submission.studentName, inline: true },
@@ -239,11 +266,15 @@ const App: React.FC = () => {
   };
 
   const sendDiscordApprovalNotification = async (submission: Submission) => {
+    // Find the user's Discord ID
+    const user = registeredUsers.find(u => u.email === submission.email);
+    const mention = user?.discordId ? `<@${user.discordId}>` : `**${submission.studentName}**`;
+
     const payload = {
       username: "Health Coordinator",
       avatar_url: "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
-      // Moved ✅ to the second line next to the student name
-      content: `<@${DISCORD_MENTION_ID}> OK\n✅ **${submission.studentName}**, Your leave for **${submission.date}** has been **Approved**! You are now cleared for health leave.`
+      // Moved ✅ to the second line next to the student name/mention
+      content: `<@${DISCORD_MENTION_ID}> OK\n✅ ${mention}, Your leave for **${submission.date}** has been **Approved**! You are now cleared for health leave.`
     };
 
     try {
@@ -258,11 +289,15 @@ const App: React.FC = () => {
   };
 
   const sendDiscordRejectionNotification = async (submission: Submission, reason: string) => {
+    // Find the user's Discord ID
+    const user = registeredUsers.find(u => u.email === submission.email);
+    const mention = user?.discordId ? `<@${user.discordId}>` : `**${submission.studentName}**`;
+
     const payload = {
       username: "Health Coordinator",
       avatar_url: "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
-      // Moved ❌ to the second line next to the student name
-      content: `<@${DISCORD_MENTION_ID}> OK\n❌ **${submission.studentName}**, Your leave for **${submission.date}** has been **Rejected**.\n**Reason**: ${reason}`
+      // Moved ❌ to the second line next to the student name/mention
+      content: `<@${DISCORD_MENTION_ID}> OK\n❌ ${mention}, Your leave for **${submission.date}** has been **Rejected**.\n**Reason**: ${reason}`
     };
 
     try {
@@ -303,6 +338,9 @@ const App: React.FC = () => {
       todayApproved: approvedData.filter(s => s.date === todayStr).length,
       weeklyApproved: approvedData.filter(s => isWithinLast7Days(s.date)).length,
       fullDayApproved: approvedData.filter(s => s.leaveTime === '1 Day').length,
+      weeklyApprovedHours: approvedData
+        .filter(s => isWithinLast7Days(s.date))
+        .reduce((acc, curr) => acc + parseDurationToHours(curr.leaveTime), 0)
     });
   }, [registeredUsers]);
 
@@ -337,7 +375,7 @@ const App: React.FC = () => {
     if (statusFilter === 'all') {
       if (subFilter === 'today') result = result.filter(s => s.date === getTodayString());
       if (subFilter === 'weekly') result = result.filter(s => isWithinLast7Days(s.date));
-      if (subFilter === 'fullDay') result = result.filter(s => s.leaveTime === '1 Day');
+      if (subFilter === 'weeklyHours') result = result.filter(s => isWithinLast7Days(s.date));
     }
 
     return result;
@@ -411,6 +449,19 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!canDelete) return;
+
+    try {
+      await deleteDoc(doc(db, 'submissions', id));
+      // No notification needed for deletion usually, or maybe add one if requested.
+      // Firestore onSnapshot will auto-update the UI.
+    } catch (error) {
+      console.error("Error deleting document: ", error);
+      alert("Failed to delete record.");
+    }
+  };
+
   const handleSaveChanges = async () => {
     if (!user?.email) return;
     setIsSaving(true);
@@ -428,6 +479,18 @@ const App: React.FC = () => {
       console.error("Error updating profile:", error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteUser = async (email: string) => {
+    if (!canDelete) return;
+    if (!window.confirm(`Are you sure you want to remove user ${email}? This will remove them from the list, but not delete their Google account.`)) return;
+
+    try {
+      await deleteDoc(doc(db, 'users', email));
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert("Failed to remove user.");
     }
   };
 
@@ -523,7 +586,7 @@ const App: React.FC = () => {
                 <p className="text-[10px] text-gray-400 font-medium">{user.email}</p>
               </div>
               <div className="relative">
-                <img src={user.photoURL || ''} alt="avatar" className="w-9 h-9 rounded-full border-2 border-white shadow-sm" />
+                <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`} alt="avatar" className="w-9 h-9 rounded-full border-2 border-white shadow-sm" />
                 <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5 shadow-sm border border-gray-100">
                   <ChevronDown className="w-2.5 h-2.5 text-gray-500" />
                 </div>
@@ -627,7 +690,7 @@ const App: React.FC = () => {
                 { id: 'total', label: 'Total Approved', count: stats.totalApproved, icon: <ClipboardList className="w-4 h-4" />, color: '#1a73e8' },
                 { id: 'today', label: 'Today Approved', count: stats.todayApproved, icon: <Sun className="w-4 h-4" />, color: '#f59e0b' },
                 { id: 'weekly', label: 'Weekly Approved', count: stats.weeklyApproved, icon: <History className="w-4 h-4" />, color: '#1ea362' },
-                { id: 'fullDay', label: 'Full Day Approved', count: stats.fullDayApproved, icon: <CalendarDays className="w-4 h-4" />, color: '#e34c26' }
+                { id: 'weeklyHours', label: 'Hours This Week', count: stats.weeklyApprovedHours, icon: <Clock className="w-4 h-4" />, color: '#e34c26' }
               ].map((box) => (
                 <button
                   key={box.id}
@@ -686,12 +749,22 @@ const App: React.FC = () => {
 
             <div className="overflow-x-auto">
               {statusFilter === 'all' ? (
-                <ApprovedTimeline submissions={filteredSubmissions} />
+                subFilter === 'weeklyHours' ? (
+                  <div className="p-6">
+                    <WeeklyHoursList submissions={filteredSubmissions} />
+                  </div>
+                ) : (
+                  <ApprovedTimeline
+                    submissions={filteredSubmissions}
+                    onDelete={canDelete ? handleDelete : undefined}
+                  />
+                )
               ) : (
                 <SubmissionsTable
                   submissions={filteredSubmissions}
                   onApprove={canApprove ? handleApprove : undefined}
                   onReject={canApprove ? handleReject : undefined}
+                  onDelete={canDelete ? handleDelete : undefined}
                 />
               )}
             </div>
@@ -701,7 +774,7 @@ const App: React.FC = () => {
         <main className="max-w-[1440px] mx-auto px-6 pt-10 pb-20 animate-in fade-in duration-300">
           <div className="bg-white border border-gray-100 rounded-xl p-8 mb-8 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-5 text-left">
-              <img src={user.photoURL || ''} className="w-16 h-16 rounded-full border-4 border-white shadow-md" alt="profile" />
+              <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`} className="w-16 h-16 rounded-full border-4 border-white shadow-md" alt="profile" />
               <div>
                 <h1 className="text-3xl font-bold text-[#1a1c1e] mb-1">Dashboard</h1>
                 <p className="text-lg text-gray-500 font-medium">
@@ -754,43 +827,58 @@ const App: React.FC = () => {
                 title="Campus Strength"
                 subText={`${stats.campusTotal} registered`}
                 icon={<Users className="w-6 h-6 text-[#1ea362]" />}
+                isActive={false}
                 color="#1ea362"
               />
             </div>
           </div>
-        </main>)}
-      {showUserList && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowUserList(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-[#1a73e8]" />
-                Registered Users
-              </h2>
-              <button onClick={() => setShowUserList(false)} className="p-1 hover:bg-gray-200 rounded-full transition-colors">
-                <XCircle className="w-6 h-6 text-gray-400" />
-              </button>
-            </div>
-            <div className="max-h-[60vh] overflow-y-auto p-2">
-              {registeredUsers.map((u, index) => (
-                <div key={u.email || index} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors">
-                  <img src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}`} className="w-10 h-10 rounded-full border border-gray-100" alt="avatar" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">{u.displayName}</h3>
-                    <p className="text-xs text-gray-500 font-medium">{u.email}</p>
+        </main>)
+      }
+      {
+        showUserList && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowUserList(false)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-[#1a73e8]" />
+                  Registered Users
+                </h2>
+                <button onClick={() => setShowUserList(false)} className="p-1 hover:bg-gray-200 rounded-full transition-colors">
+                  <XCircle className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+              <div className="max-h-[60vh] overflow-y-auto p-2">
+                {registeredUsers.map((u, index) => (
+                  <div key={u.email || index} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                    <div className="flex items-center gap-3">
+                      <img src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}`} className="w-10 h-10 rounded-full border border-gray-100" alt="avatar" />
+                      <div>
+                        <h3 className="font-semibold text-gray-900 text-sm">{u.displayName}</h3>
+                        <p className="text-xs text-gray-500 font-medium">{u.email}</p>
+                      </div>
+                    </div>
+                    {canDelete && u.email !== SUPER_ADMIN_EMAIL && (
+                      <button
+                        onClick={() => handleDeleteUser(u.email)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                        title="Remove User"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                </div>
-              ))}
-              {registeredUsers.length === 0 && (
-                <div className="p-8 text-center text-gray-400">No users found</div>
-              )}
-            </div>
-            <div className="p-3 border-t border-gray-100 bg-gray-50/50 text-center">
-              <p className="text-[10px] text-gray-400 font-medium">Showing all registered users</p>
+                ))}
+                {registeredUsers.length === 0 && (
+                  <div className="p-8 text-center text-gray-400">No users found</div>
+                )}
+              </div>
+              <div className="p-3 border-t border-gray-100 bg-gray-50/50 text-center">
+                <p className="text-[10px] text-gray-400 font-medium">Showing all registered users</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <ManageAdminsModal
         isOpen={showAdminModal}
@@ -799,142 +887,144 @@ const App: React.FC = () => {
         currentUserEmail={user.email}
       />
 
-      {showUserProfile && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowUserProfile(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-200 relative" onClick={e => e.stopPropagation()}>
-            {/* Header Background */}
-            <div className="h-32 bg-gradient-to-r from-blue-600 to-blue-400 relative">
-              <button onClick={() => setShowUserProfile(false)} className="absolute top-4 right-4 p-1.5 bg-white/20 hover:bg-white/30 rounded-full text-white backdrop-blur-sm transition-colors">
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Profile Content */}
-            <div className="px-6 pb-8">
-              <div className="relative -mt-16 mb-6 flex flex-col items-center">
-                <div className="p-1 bg-white rounded-full shadow-lg">
-                  <img src={user.photoURL || ''} className="w-28 h-28 rounded-full border-4 border-orange-200" alt="profile" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mt-3">{user.displayName}</h2>
-              </div>
-
-              <div className="space-y-4">
-                {/* Email Section */}
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <div className="flex items-center gap-2 text-gray-500 mb-1">
-                    <Mail className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Email</span>
-                  </div>
-                  <p className="text-gray-900 font-medium pl-6">{user.email}</p>
-                </div>
-
-                {/* Date Joined */}
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <div className="flex items-center gap-2 text-gray-500 mb-1">
-                    <Calendar className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Date Joined</span>
-                  </div>
-                  <p className="text-gray-900 font-medium pl-6">
-                    {user.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString('en-US', {
-                      year: 'numeric', month: 'long', day: 'numeric'
-                    }) : 'December 20, 2025'}
-                  </p>
-                </div>
-
-                {/* Campus */}
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <div className="flex items-center gap-2 text-gray-500 mb-2">
-                    <Building className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Campus</span>
-                  </div>
-                  <div className="pl-6">
-                    <select disabled className="w-full p-2.5 bg-gray-200 border border-gray-300 rounded-lg text-gray-500 font-medium cursor-not-allowed appearance-none">
-                      <option>Dharamshala</option>
-                    </select>
-                    <p className="text-[10px] text-gray-400 mt-1.5 font-medium">Contact admin to change campus</p>
-                  </div>
-                </div>
-
-                {/* House */}
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <div className="flex items-center gap-2 text-gray-500 mb-2">
-                    <Building className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">House</span>
-                  </div>
-                  <div className="pl-6">
-                    <select
-                      onChange={(e) => setHouseInput(e.target.value)}
-                      value={houseInput}
-                      className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all cursor-pointer hover:border-blue-400"
-                    >
-                      <option value="" disabled>Select your house</option>
-                      <option value="Bhairav">Bhairav</option>
-                      <option value="Malhar">Malhar</option>
-                      <option value="Bageshree">Bageshree</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Discord ID */}
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                  <div className="flex items-center gap-2 text-gray-500 mb-2">
-                    <Hash className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Discord User ID</span>
-                  </div>
-                  <div className="pl-6 relative">
-                    <input
-                      type={showDiscordId ? "text" : "password"}
-                      placeholder="Enter your Discord ID"
-                      value={discordIdInput}
-                      onChange={(e) => setDiscordIdInput(e.target.value.replace(/\D/g, ''))}
-                      className="w-full p-2.5 pr-10 bg-white border border-gray-200 rounded-lg text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-gray-400 hover:border-blue-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowDiscordId(!showDiscordId)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                    >
-                      {showDiscordId ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Save Button */}
-                <button
-                  onClick={handleSaveChanges}
-                  disabled={isSaving || saveSuccess}
-                  className={`w-full mt-2 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${saveSuccess
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-[#1a73e8] text-white hover:bg-[#1557b0]'
-                    }`}
-                >
-                  {isSaving ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : saveSuccess ? (
-                    <>
-                      <CheckCircle className="w-5 h-5" />
-                      Saved Data Successfully
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-4 h-4" /> {/* Spacer for alignment or icon if needed */}
-                      Save Changes
-                    </>
-                  )}
+      {
+        showUserProfile && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowUserProfile(false)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-200 relative" onClick={e => e.stopPropagation()}>
+              {/* Header Background */}
+              <div className="h-32 bg-gradient-to-r from-blue-600 to-blue-400 relative">
+                <button onClick={() => setShowUserProfile(false)} className="absolute top-4 right-4 p-1.5 bg-white/20 hover:bg-white/30 rounded-full text-white backdrop-blur-sm transition-colors">
+                  <XCircle className="w-5 h-5" />
                 </button>
               </div>
 
-              <button
-                onClick={handleLogout}
-                className="w-full mt-6 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-red-100 text-red-600 font-bold text-sm hover:bg-red-50 transition-all hover:shadow-sm"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
+              {/* Profile Content */}
+              <div className="px-6 pb-8">
+                <div className="relative -mt-16 mb-6 flex flex-col items-center">
+                  <div className="p-1 bg-white rounded-full shadow-lg">
+                    <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`} className="w-28 h-28 rounded-full border-4 border-orange-200" alt="profile" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mt-3">{user.displayName}</h2>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Email Section */}
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <div className="flex items-center gap-2 text-gray-500 mb-1">
+                      <Mail className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Email</span>
+                    </div>
+                    <p className="text-gray-900 font-medium pl-6">{user.email}</p>
+                  </div>
+
+                  {/* Date Joined */}
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <div className="flex items-center gap-2 text-gray-500 mb-1">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Date Joined</span>
+                    </div>
+                    <p className="text-gray-900 font-medium pl-6">
+                      {user.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString('en-US', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                      }) : 'December 20, 2025'}
+                    </p>
+                  </div>
+
+                  {/* Campus */}
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <div className="flex items-center gap-2 text-gray-500 mb-2">
+                      <Building className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Campus</span>
+                    </div>
+                    <div className="pl-6">
+                      <select disabled className="w-full p-2.5 bg-gray-200 border border-gray-300 rounded-lg text-gray-500 font-medium cursor-not-allowed appearance-none">
+                        <option>Dharamshala</option>
+                      </select>
+                      <p className="text-[10px] text-gray-400 mt-1.5 font-medium">Contact admin to change campus</p>
+                    </div>
+                  </div>
+
+                  {/* House */}
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <div className="flex items-center gap-2 text-gray-500 mb-2">
+                      <Building className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">House</span>
+                    </div>
+                    <div className="pl-6">
+                      <select
+                        onChange={(e) => setHouseInput(e.target.value)}
+                        value={houseInput}
+                        className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all cursor-pointer hover:border-blue-400"
+                      >
+                        <option value="" disabled>Select your house</option>
+                        <option value="Bhairav">Bhairav</option>
+                        <option value="Malhar">Malhar</option>
+                        <option value="Bageshree">Bageshree</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Discord ID */}
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <div className="flex items-center gap-2 text-gray-500 mb-2">
+                      <Hash className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Discord User ID</span>
+                    </div>
+                    <div className="pl-6 relative">
+                      <input
+                        type={showDiscordId ? "text" : "password"}
+                        placeholder="Enter your Discord ID"
+                        value={discordIdInput}
+                        onChange={(e) => setDiscordIdInput(e.target.value.replace(/\D/g, ''))}
+                        className="w-full p-2.5 pr-10 bg-white border border-gray-200 rounded-lg text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-gray-400 hover:border-blue-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDiscordId(!showDiscordId)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      >
+                        {showDiscordId ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <button
+                    onClick={handleSaveChanges}
+                    disabled={isSaving || saveSuccess}
+                    className={`w-full mt-2 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${saveSuccess
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-[#1a73e8] text-white hover:bg-[#1557b0]'
+                      }`}
+                  >
+                    {isSaving ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : saveSuccess ? (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        Saved Data Successfully
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-4 h-4" /> {/* Spacer for alignment or icon if needed */}
+                        Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full mt-6 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-red-100 text-red-600 font-bold text-sm hover:bg-red-50 transition-all hover:shadow-sm"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </div>
   );
 };

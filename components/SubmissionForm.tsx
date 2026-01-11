@@ -27,6 +27,9 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCancel, use
     leaveTime: '' as LeaveTime
   });
 
+  const [customReason, setCustomReason] = useState('');
+  const [customTime, setCustomTime] = useState('');
+
   const reasons: LeaveReason[] = ['Fever', 'Headache', 'Stomach', 'Unwell', 'Body Pain'];
   const times: LeaveTime[] = ['1 Day', 'First Half', 'Second Half', '2 Hours', '4 Hours', '1 Hour'];
 
@@ -36,7 +39,24 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCancel, use
       alert("Please fill all required fields");
       return;
     }
-    onSubmit(formData);
+
+    if (formData.reason === 'Other' && !customReason.trim()) {
+      alert("Please specify the reason");
+      return;
+    }
+
+    if (formData.leaveTime === 'Other' && !customTime.trim()) {
+      alert("Please specify the time/duration");
+      return;
+    }
+
+    const finalData = {
+      ...formData,
+      reason: (formData.reason === 'Other' ? customReason : formData.reason) as LeaveReason,
+      leaveTime: (formData.leaveTime === 'Other' ? customTime : formData.leaveTime) as LeaveTime
+    };
+
+    onSubmit(finalData);
     // User requested immediate redirect to Pending list
     if (onViewPending) {
       onViewPending();
@@ -144,21 +164,35 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCancel, use
           <div className="bg-white rounded-lg border border-[#dadce0] p-6 shadow-sm">
             <label className="block text-base mb-6 text-black">Reason <span className="text-[#d93025]">*</span></label>
             <div className="space-y-4">
-              {reasons.map((r) => (
-                <label key={r} className="flex items-center gap-3 cursor-pointer group">
-                  <div className="relative flex items-center justify-center">
-                    <input
-                      type="radio"
-                      name="reason"
-                      required
-                      className="peer appearance-none w-5 h-5 border-2 border-[#dadce0] rounded-full checked:border-[#673ab7] transition-all bg-white"
-                      checked={formData.reason === r}
-                      onChange={() => setFormData(prev => ({ ...prev, reason: r }))}
-                    />
-                    <div className="absolute w-2.5 h-2.5 rounded-full bg-[#673ab7] scale-0 peer-checked:scale-100 transition-transform"></div>
-                  </div>
-                  <span className="text-sm text-black">{r}</span>
-                </label>
+              {reasons.concat(['Other']).map((r) => (
+                <div key={r}>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="radio"
+                        name="reason"
+                        required={formData.reason !== 'Other'}
+                        className="peer appearance-none w-5 h-5 border-2 border-[#dadce0] rounded-full checked:border-[#673ab7] transition-all bg-white"
+                        checked={formData.reason === (r === 'Other' ? 'Other' : r)}
+                        onChange={() => setFormData(prev => ({ ...prev, reason: r as LeaveReason }))}
+                      />
+                      <div className="absolute w-2.5 h-2.5 rounded-full bg-[#673ab7] scale-0 peer-checked:scale-100 transition-transform"></div>
+                    </div>
+                    <span className="text-sm text-black">{r}</span>
+                  </label>
+                  {r === 'Other' && formData.reason === 'Other' && (
+                    <div className="ml-8 mt-2 animate-in slide-in-from-top-2">
+                      <input
+                        type="text"
+                        placeholder="Please specify reason"
+                        value={customReason}
+                        onChange={(e) => setCustomReason(e.target.value)}
+                        className="w-full sm:w-64 border-b border-[#dadce0] focus:border-[#673ab7] outline-none py-1 text-sm text-gray-700 bg-transparent placeholder:text-gray-400"
+                        autoFocus
+                      />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -167,21 +201,34 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCancel, use
           <div className="bg-white rounded-lg border border-[#dadce0] p-6 shadow-sm">
             <label className="block text-base mb-6 text-black">Leave Time <span className="text-[#d93025]">*</span></label>
             <div className="space-y-4">
-              {times.map((t) => (
-                <label key={t} className="flex items-center gap-3 cursor-pointer group">
-                  <div className="relative flex items-center justify-center">
-                    <input
-                      type="radio"
-                      name="leaveTime"
-                      required
-                      className="peer appearance-none w-5 h-5 border-2 border-[#dadce0] rounded-full checked:border-[#673ab7] transition-all bg-white"
-                      checked={formData.leaveTime === t}
-                      onChange={() => setFormData(prev => ({ ...prev, leaveTime: t }))}
-                    />
-                    <div className="absolute w-2.5 h-2.5 rounded-full bg-[#673ab7] scale-0 peer-checked:scale-100 transition-transform"></div>
-                  </div>
-                  <span className="text-sm text-black">{t}</span>
-                </label>
+              {times.concat(['Other']).map((t) => (
+                <div key={t}>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="radio"
+                        name="leaveTime"
+                        required={formData.leaveTime !== 'Other'}
+                        className="peer appearance-none w-5 h-5 border-2 border-[#dadce0] rounded-full checked:border-[#673ab7] transition-all bg-white"
+                        checked={formData.leaveTime === (t === 'Other' ? 'Other' : t)}
+                        onChange={() => setFormData(prev => ({ ...prev, leaveTime: t as LeaveTime }))}
+                      />
+                      <div className="absolute w-2.5 h-2.5 rounded-full bg-[#673ab7] scale-0 peer-checked:scale-100 transition-transform"></div>
+                    </div>
+                    <span className="text-sm text-black">{t}</span>
+                  </label>
+                  {t === 'Other' && formData.leaveTime === 'Other' && (
+                    <div className="ml-8 mt-2 animate-in slide-in-from-top-2">
+                      <input
+                        type="text"
+                        placeholder="Please specify time/duration"
+                        value={customTime}
+                        onChange={(e) => setCustomTime(e.target.value)}
+                        className="w-full sm:w-64 border-b border-[#dadce0] focus:border-[#673ab7] outline-none py-1 text-sm text-gray-700 bg-transparent placeholder:text-gray-400"
+                      />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -198,6 +245,8 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCancel, use
               type="button"
               onClick={() => {
                 setFormData(prev => ({ ...prev, reason: '' as LeaveReason, leaveTime: '' as LeaveTime }));
+                setCustomReason('');
+                setCustomTime('');
               }}
               className="text-[#673ab7] font-medium text-sm hover:bg-[#673ab7]/5 px-4 py-2 rounded transition-colors"
             >

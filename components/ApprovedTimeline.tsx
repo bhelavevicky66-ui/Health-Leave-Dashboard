@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
 import { Submission } from '../types';
-import { Calendar, CheckCircle2, User, Clock } from 'lucide-react';
+import { Calendar, CheckCircle2, User, Clock, Trash2 } from 'lucide-react';
 
 interface ApprovedTimelineProps {
     submissions: Submission[];
+    onDelete?: (id: string) => void;
 }
 
-const ApprovedTimeline: React.FC<ApprovedTimelineProps> = ({ submissions }) => {
+const ApprovedTimeline: React.FC<ApprovedTimelineProps> = ({ submissions, onDelete }) => {
     // Group submissions by date
     const groupedSubmissions = useMemo(() => {
         const groups: { [key: string]: Submission[] } = {};
@@ -44,12 +45,27 @@ const ApprovedTimeline: React.FC<ApprovedTimelineProps> = ({ submissions }) => {
                                 <div className="absolute top-0 bottom-0 left-0 w-1 bg-green-500 rounded-l-lg"></div>
 
                                 <div className="pl-3 flex flex-col gap-2">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                        <span className="font-bold text-gray-800 text-sm">Health Leave</span>
-                                        <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider">
-                                            Approved
-                                        </span>
+                                    <div className="flex items-center gap-2 mb-1 justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                            <span className="font-bold text-gray-800 text-sm">Health Leave</span>
+                                            <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider">
+                                                Approved
+                                            </span>
+                                        </div>
+                                        {onDelete && (
+                                            <button
+                                                onClick={() => {
+                                                    if (window.confirm("Are you sure you want to delete this approved record?")) {
+                                                        onDelete(sub.id);
+                                                    }
+                                                }}
+                                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                                title="Delete Record"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
 
                                     <p className="text-gray-600 text-sm leading-relaxed">

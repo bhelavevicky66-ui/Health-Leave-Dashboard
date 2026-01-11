@@ -1,15 +1,16 @@
 
 import React, { useState } from 'react';
 import { Submission } from '../types';
-import { CheckCircle, Clock, CalendarDays, XCircle, Send } from 'lucide-react';
+import { CheckCircle, Clock, CalendarDays, XCircle, Send, Trash2 } from 'lucide-react';
 
 interface SubmissionsTableProps {
   submissions: Submission[];
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, onApprove, onReject }) => {
+const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, onApprove, onReject, onDelete }) => {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
@@ -140,6 +141,19 @@ const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, onAppr
                       >
                         Reject
                       </button>
+                      {onDelete && (
+                        <button
+                          onClick={() => {
+                            if (window.confirm("Are you sure you want to permanently delete this record?")) {
+                              onDelete(submission.id);
+                            }
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
+                          title="Delete Record"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   )
                 ) : (
@@ -148,9 +162,25 @@ const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, onAppr
                   </span>
                 )
               ) : (
-                <span className="text-gray-400 text-xs italic bg-gray-50 px-2 py-1 rounded">
-                  {submission.status === 'Approved' ? 'Confirmed' : 'Dismissed'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-xs italic bg-gray-50 px-2 py-1 rounded">
+                    {submission.status === 'Approved' ? 'Confirmed' : 'Dismissed'}
+                  </span>
+                  {/* Delete Button for Super Admin (even for processed items) */}
+                  {onDelete && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to permanently delete this record?")) {
+                          onDelete(submission.id);
+                        }
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete Record"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               )}
             </td>
           </tr>
