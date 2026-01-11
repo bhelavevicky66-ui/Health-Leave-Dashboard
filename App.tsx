@@ -51,7 +51,7 @@ import ManageAdminsModal from './components/ManageAdminsModal';
 
 const DISCORD_WEBHOOK_URL = "/api/discord/1423267890227839009/Fa0y_SNlNX7d_gaHnUvoChs3N21DbApEF7MigvF2Nq_hJhA2icbsTWz4LcoXxpGDQyPb";
 const DISCORD_MENTION_ID = "1385109379845591062";
-const ALLOWED_DOMAIN = "@gmail.com";
+// const ALLOWED_DOMAIN = "@gmail.com"; // Removed restriction
 const SUPER_ADMIN_EMAIL = "bhelavevicky66@gmail.com";
 
 const getTodayString = () => new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -95,46 +95,47 @@ const App: React.FC = () => {
 
   // Handle Auth State with Domain Restriction
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        if (currentUser.email && currentUser.email.endsWith(ALLOWED_DOMAIN)) {
+        // 1. IMMEDIATE UI UPDATE
+        // ALLOW ANY EMAIL
+        if (currentUser.email) {
           setUser(currentUser);
           setAuthError(null);
 
-          // Save user to Firestore
-          try {
-            // Determine role: if super admin email, force super_admin, else keep existing or default to user
-            let role: UserRole = 'user';
-            if (currentUser.email === SUPER_ADMIN_EMAIL) {
-              role = 'super_admin';
+          // 2. BACKGOUND SYNC (Don't await this for the UI)
+          const syncUserToFirestore = async () => {
+            try {
+              // Determine role: if super admin email, force super_admin, else keep existing or default to user
+              let role: UserRole = 'user';
+              if (currentUser.email === SUPER_ADMIN_EMAIL) {
+                role = 'super_admin';
+              }
+
+              await setDoc(doc(db, 'users', currentUser.email!), {
+                displayName: currentUser.displayName,
+                email: currentUser.email,
+                photoURL: currentUser.photoURL,
+                lastSeen: serverTimestamp(),
+                role: role
+              }, { merge: true });
+
+              // Force update super admin role if needed
+              if (currentUser.email === SUPER_ADMIN_EMAIL) {
+                await updateDoc(doc(db, 'users', currentUser.email!), { role: 'super_admin' });
+              }
+            } catch (e) {
+              console.error("Error saving user (background):", e);
+              // Optional: Set a non-blocking error toast here if needed
             }
+          };
 
-            await setDoc(doc(db, 'users', currentUser.email), {
-              displayName: currentUser.displayName,
-              email: currentUser.email,
-              photoURL: currentUser.photoURL,
-              lastSeen: serverTimestamp(),
-              role: role // Will be overwritten if merged, need to be careful? merge: true keeps old fields. 
-              // Actually we want to ENFORCE super admin if it matches, but standard users should stay what they are.
-              // For now, simpler logic:
-            }, { merge: true });
-
-            // Force update super admin role if needed (security by obscurity in frontend, but okay for now)
-            if (currentUser.email === SUPER_ADMIN_EMAIL) {
-              await updateDoc(doc(db, 'users', currentUser.email), { role: 'super_admin' });
-            }
-
-          } catch (e) {
-            console.error("Error saving user:", e);
-          }
-        } else {
-          await signOut(auth);
-          setUser(null);
-          setAuthError(`Access Denied: Only ${ALLOWED_DOMAIN} accounts are allowed.`);
+          syncUserToFirestore(); // Fire and forget
         }
       } else {
         setUser(null);
       }
+      // 3. STOP LOADING IMMEDIATELY
       setLoading(false);
     });
     return () => unsubscribe();
@@ -183,11 +184,8 @@ const App: React.FC = () => {
     setAuthError(null);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const email = result.user.email;
-      if (email && !email.endsWith(ALLOWED_DOMAIN)) {
-        await signOut(auth);
-        setAuthError(`Access Denied: Only ${ALLOWED_DOMAIN} accounts are allowed.`);
-      }
+      // const email = result.user.email;
+      // No domain check needed anymore
     } catch (error) {
       console.error("Login failed:", error);
       setAuthError("Login failed. Please try again.");
@@ -455,7 +453,7 @@ const App: React.FC = () => {
             <CalendarDays className="w-10 h-10" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Campus Health</h1>
-          <p className="text-gray-500 mb-6 font-medium">Please sign in with your official {ALLOWED_DOMAIN} account.</p>
+          <p className="text-gray-500 mb-6 font-medium">Please sign in with your Google account.</p>
 
           {authError && (
             <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 text-sm font-medium animate-in slide-in-from-top-2 duration-300">
