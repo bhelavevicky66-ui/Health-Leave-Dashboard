@@ -24,7 +24,8 @@ import {
   Eye,
   EyeOff,
   Shield,
-  Trash2
+  Trash2,
+  Info
 } from 'lucide-react';
 import {
   signInWithPopup,
@@ -510,28 +511,72 @@ const App: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f0ebf8] p-6">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-gray-100">
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-600">
-            <CalendarDays className="w-10 h-10" />
+      <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center p-6 font-sans relative overflow-hidden">
+        {/* Background Elements */}
+        <div className="absolute top-0 right-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -right-22 w-96 h-96 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
+          <div className="absolute top-40 -left-20 w-72 h-72 bg-orange-100 rounded-full blur-3xl opacity-40"></div>
+        </div>
+
+        <div className="max-w-5xl w-full flex flex-col md:flex-row items-center justify-center relative z-10">
+          {/* Illustration Section */}
+          <div className="hidden md:flex flex-1 items-center justify-end -mr-16 lg:-mr-20 z-0">
+            <img
+              src="/login-character.png"
+              alt="Student with laptop"
+              className="w-full max-w-[500px] object-contain drop-shadow-2xl"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Campus Health</h1>
-          <p className="text-gray-500 mb-6 font-medium">Please sign in with your Google account.</p>
 
-          {authError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 text-sm font-medium animate-in slide-in-from-top-2 duration-300">
-              <ShieldAlert className="w-5 h-5 flex-shrink-0" />
-              <span>{authError}</span>
+          {/* Login Card Section */}
+          <div className="bg-white p-12 rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] max-w-[480px] w-full relative z-10 border border-white/50 backdrop-blur-sm">
+            {/* Navgurukul Logo/Brand */}
+            <div className="flex justify-center mb-10">
+              <div className="flex items-center gap-1">
+                <span className="text-[#FF5722] font-bold text-3xl tracking-tighter">nav</span>
+                <span className="text-gray-900 font-bold text-3xl tracking-tighter">gurukul</span>
+              </div>
             </div>
-          )}
 
-          <button
-            onClick={handleLogin}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border-2 border-gray-200 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6" />
-            Sign in / Sign up with Google
-          </button>
+            <div className="text-center mb-10">
+              <h1 className="text-[32px] font-extrabold text-[#1a1c1e] mb-3 leading-[1.2] tracking-tight">Campus Learning Dashboard</h1>
+              <p className="text-gray-500 font-medium text-[15px]">Sign in to access your learning journey</p>
+            </div>
+
+            {/* Info Box */}
+            <div className="bg-[#eff6ff] border border-[#dbeafe] rounded-2xl p-5 mb-10 text-left flex items-start gap-4 mx-2">
+              <div className="bg-[#2563eb] rounded-full p-1 mt-0.5 flex-shrink-0">
+                <Info className="w-3.5 h-3.5 text-white stroke-[3px]" />
+              </div>
+              <div>
+                <h3 className="text-[#1e40af] font-bold text-[14px] mb-1">Navgurukul Access Only</h3>
+                <p className="text-[#1e3a8a]/80 text-[13px] leading-relaxed font-medium">
+                  Only users with <span className="font-bold">@navgurukul.org</span> email addresses can access this platform.
+                </p>
+              </div>
+            </div>
+
+            {authError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 text-sm font-medium animate-in slide-in-from-top-2">
+                <ShieldAlert className="w-5 h-5 flex-shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            <div className="px-2">
+              <button
+                onClick={handleLogin}
+                className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white border border-gray-200 rounded-xl font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.98] shadow-sm hover:shadow-md group"
+              >
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                <span className="text-[15px]">Continue with Google</span>
+              </button>
+            </div>
+
+            <p className="text-center text-[11px] text-gray-400 mt-10 font-medium">
+              By signing in, you agree to our Terms of Service and Privacy Policy
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -586,7 +631,14 @@ const App: React.FC = () => {
                 <p className="text-[10px] text-gray-400 font-medium">{user.email}</p>
               </div>
               <div className="relative">
-                <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`} alt="avatar" className="w-9 h-9 rounded-full border-2 border-white shadow-sm" />
+                <img
+                  src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`}
+                  alt="avatar"
+                  className="w-9 h-9 rounded-full border-2 border-white shadow-sm"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${user.displayName}&background=random`
+                  }}
+                />
                 <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5 shadow-sm border border-gray-100">
                   <ChevronDown className="w-2.5 h-2.5 text-gray-500" />
                 </div>
@@ -774,7 +826,14 @@ const App: React.FC = () => {
         <main className="max-w-[1440px] mx-auto px-6 pt-10 pb-20 animate-in fade-in duration-300">
           <div className="bg-white border border-gray-100 rounded-xl p-8 mb-8 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-5 text-left">
-              <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`} className="w-16 h-16 rounded-full border-4 border-white shadow-md" alt="profile" />
+              <img
+                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`}
+                className="w-16 h-16 rounded-full border-4 border-white shadow-md"
+                alt="profile"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${user.displayName}&background=random`
+                }}
+              />
               <div>
                 <h1 className="text-3xl font-bold text-[#1a1c1e] mb-1">Dashboard</h1>
                 <p className="text-lg text-gray-500 font-medium">
@@ -851,7 +910,14 @@ const App: React.FC = () => {
                 {registeredUsers.map((u, index) => (
                   <div key={u.email || index} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors group">
                     <div className="flex items-center gap-3">
-                      <img src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}`} className="w-10 h-10 rounded-full border border-gray-100" alt="avatar" />
+                      <img
+                        src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}&background=random`}
+                        className="w-10 h-10 rounded-full border border-gray-100"
+                        alt="avatar"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${u.displayName}&background=random`
+                        }}
+                      />
                       <div>
                         <h3 className="font-semibold text-gray-900 text-sm">{u.displayName}</h3>
                         <p className="text-xs text-gray-500 font-medium">{u.email}</p>
@@ -902,7 +968,14 @@ const App: React.FC = () => {
               <div className="px-6 pb-8">
                 <div className="relative -mt-16 mb-6 flex flex-col items-center">
                   <div className="p-1 bg-white rounded-full shadow-lg">
-                    <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`} className="w-28 h-28 rounded-full border-4 border-orange-200" alt="profile" />
+                    <img
+                      src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`}
+                      className="w-28 h-28 rounded-full border-4 border-orange-200"
+                      alt="profile"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${user.displayName}&background=random`
+                      }}
+                    />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 mt-3">{user.displayName}</h2>
                 </div>
