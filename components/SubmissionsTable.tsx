@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Submission } from '../types';
 import { CheckCircle, Clock, CalendarDays, XCircle, Send, Trash2 } from 'lucide-react';
