@@ -519,13 +519,13 @@ const App: React.FC = () => {
 
         <div className="max-w-5xl w-full flex flex-col md:flex-row items-center justify-center relative z-10">
           {/* Illustration Section */}
-          <div className="hidden md:flex flex-1 items-center justify-end -mr-16 lg:-mr-20 z-0">
+          {/* <div className="hidden md:flex flex-1 items-center justify-end -mr-16 lg:-mr-20 z-0">
             <img
               src="/login-character.png"
               alt="Student with laptop"
               className="w-full max-w-[500px] object-contain drop-shadow-2xl"
             />
-          </div>
+          </div> */}
 
           {/* Login Card Section */}
           <div className="bg-white p-12 rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] max-w-[480px] w-full relative z-10 border border-white/50 backdrop-blur-sm">
