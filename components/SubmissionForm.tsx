@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { LeaveTime, LeaveReason, Submission } from '../types';
 
