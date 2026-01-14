@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { XCircle, Shield, User, CheckCircle } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
