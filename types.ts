@@ -1,4 +1,3 @@
-
 export type LeaveTime = '1 Day' | 'First Half' | 'Second Half' | '2 Hours' | '4 Hours' | '1 Hour' | 'Other' | string;
 export type LeaveReason = 'Fever' | 'Headache' | 'Stomach' | 'Unwell' | 'Body Pain' | 'Other' | string;
 export type SubmissionStatus = 'Pending' | 'Approved' | 'Rejected';
