@@ -922,37 +922,39 @@ const App: React.FC = () => {
         </main>
       ) : (
         <main className="max-w-[1440px] mx-auto px-6 pt-10 pb-20 animate-in fade-in duration-300">
-          <div className="bg-white border border-gray-100 rounded-xl p-8 mb-8 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-5 text-left">
-              <img
-                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`}
-                className="w-16 h-16 rounded-full border-4 border-white shadow-md"
-                alt="profile"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${user.displayName}&background=random`
-                }}
-              />
-              <div>
+          <div className="bg-white border border-gray-100 rounded-xl p-8 mb-8 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+            <img
+              src="/navgurukul-logo.png"
+              alt="NavGurukul"
+              className="h-16 mb-4 mx-auto object-contain"
+            />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-5 text-left">
                 <img
-                  src="/navgurukul-logo.png"
-                  alt="NavGurukul"
-                  className="h-16 mb-2 object-contain"
+                  src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`}
+                  className="w-16 h-16 rounded-full border-4 border-white shadow-md"
+                  alt="profile"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${user.displayName}&background=random`
+                  }}
                 />
-                <h1 className="text-3xl font-bold text-[#1a1c1e] mb-1">Dashboard</h1>
-                <p className="text-lg text-gray-500 font-medium">
-                  Welcome back, {user.displayName?.split(' ')[0]}
-                  <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 uppercase tracking-wider font-bold">
-                    {currentUserRole.replace('_', ' ')}
-                  </span>
-                </p>
+                <div>
+                  <h1 className="text-3xl font-bold text-[#1a1c1e] mb-1">Dashboard</h1>
+                  <p className="text-lg text-gray-500 font-medium">
+                    Welcome back, {user.displayName?.split(' ')[0]}
+                    <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 uppercase tracking-wider font-bold">
+                      {currentUserRole.replace('_', ' ')}
+                    </span>
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={() => setCurrentView('form')}
+                className="inline-flex items-center px-8 py-2.5 bg-[#1a73e8] text-white rounded-lg font-bold text-sm hover:bg-[#1557b0] transition-all shadow-md active:scale-95"
+              >
+                Apply Leave Form
+              </button>
             </div>
-            <button
-              onClick={() => setCurrentView('form')}
-              className="inline-flex items-center px-8 py-2.5 bg-[#1a73e8] text-white rounded-lg font-bold text-sm hover:bg-[#1557b0] transition-all shadow-md active:scale-95"
-            >
-              Apply Leave Form
-            </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
