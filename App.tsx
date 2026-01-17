@@ -275,11 +275,15 @@ const App: React.FC = () => {
     const user = registeredUsers.find(u => u.email === submission.email);
     const mention = user?.discordId ? `<@${user.discordId}>` : `**${submission.studentName}**`;
 
+    // Find the Admin's Discord ID
+    const adminUser = registeredUsers.find(u => u.email === SUPER_ADMIN_EMAIL);
+    const adminMention = adminUser?.discordId ? `<@${adminUser.discordId}>` : `Admin`;
+
     const payload = {
       username: "Health Coordinator",
       avatar_url: "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
       // Moved ✅ to the second line next to the student name/mention
-      content: `<@${DISCORD_MENTION_ID}> OK\n✅ ${mention}, Your leave for **${submission.date}** has been **Approved**! You are now cleared for health leave.`
+      content: `${adminMention} OK\n✅ ${mention}, Your leave for **${submission.date}** has been **Approved**! You are now cleared for health leave.`
     };
 
     try {
@@ -298,11 +302,15 @@ const App: React.FC = () => {
     const user = registeredUsers.find(u => u.email === submission.email);
     const mention = user?.discordId ? `<@${user.discordId}>` : `**${submission.studentName}**`;
 
+    // Find the Admin's Discord ID
+    const adminUser = registeredUsers.find(u => u.email === SUPER_ADMIN_EMAIL);
+    const adminMention = adminUser?.discordId ? `<@${adminUser.discordId}>` : `Admin`;
+
     const payload = {
       username: "Health Coordinator",
       avatar_url: "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
       // Moved ❌ to the second line next to the student name/mention
-      content: `<@${DISCORD_MENTION_ID}> OK\n❌ ${mention}, Your leave for **${submission.date}** has been **Rejected**.\n**Reason**: ${reason}`
+      content: `${adminMention} OK\n❌ ${mention}, Your leave for **${submission.date}** has been **Rejected**.\n**Reason**: ${reason}`
     };
 
     try {
