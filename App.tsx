@@ -238,7 +238,7 @@ const App: React.FC = () => {
           { name: "Reason", value: submission.reason, inline: true },
           { name: "Leave Date", value: submission.date, inline: true },
           { name: "Duration", value: submission.leaveTime, inline: true },
-          { name: "Status", value: "⏳ Pending Approval", inline: true }
+          { name: "Total Hours", value: `${parseDurationToHours(submission.leaveTime)} Hours`, inline: true }
         ],
         timestamp: new Date().toISOString()
       }]
