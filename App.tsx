@@ -926,7 +926,7 @@ const App: React.FC = () => {
             <img
               src="/navgurukul-logo.png"
               alt="NavGurukul"
-              className="h-16 mb-4 mx-auto object-contain"
+              className="h-16 mb-4 -mt-4 mx-auto object-contain"
             />
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-5 text-left">
