@@ -686,17 +686,8 @@ const App: React.FC = () => {
         <div className="max-w-[1440px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="hidden lg:flex items-center gap-3">
-              <div className="w-12 h-10 flex items-center justify-center relative">
-                <svg viewBox="0 0 100 100" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="5" y="32" width="90" height="7" fill="#1a1c1e" rx="1" />
-                  <path d="M42 22 V85" stroke="#e34c26" strokeWidth="9" strokeLinecap="round" fill="none" />
-                  <path d="M42 58 C25 58 12 68 12 76 C12 84 25 88 42 88" stroke="#e34c26" strokeWidth="9" strokeLinecap="round" fill="none" />
-                  <path d="M88 22 V85" stroke="#1a1c1e" strokeWidth="9" strokeLinecap="round" fill="none" />
-                  <path d="M88 58 C71 58 58 68 58 76 C58 84 71 88 88 88" stroke="#1a1c1e" strokeWidth="9" strokeLinecap="round" fill="none" />
-                </svg>
-                <div className="absolute -top-1 -right-2 bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full border-2 border-[#fff9f2] shadow-sm animate-bounce">
-                  OK
-                </div>
+              <div className="flex items-center justify-center relative -ml-2">
+                <img src="/dh-logo.png" alt="Logo" className="h-10 w-auto object-contain" />
               </div>
               <span className="text-[#1a1c1e] text-xl font-bold tracking-tight border-r border-gray-300 pr-6 mr-2 hidden md:block">Campus Health Leave</span>
             </div>
