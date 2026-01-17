@@ -629,11 +629,13 @@ const App: React.FC = () => {
           {/* Login Card Section */}
           <div className="bg-white p-12 rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] max-w-[480px] w-full relative z-10 border border-white/50 backdrop-blur-sm">
             {/* Navgurukul Logo/Brand */}
+            {/* Navgurukul Logo/Brand */}
             <div className="flex justify-center mb-10">
-              <div className="flex items-center gap-1">
-                <span className="text-[#FF5722] font-bold text-3xl tracking-tighter">nav</span>
-                <span className="text-gray-900 font-bold text-3xl tracking-tighter">gurukul</span>
-              </div>
+              <img
+                src="/navgurukul-logo.png"
+                alt="NavGurukul"
+                className="h-12 object-contain"
+              />
             </div>
 
             <div className="text-center mb-10">
