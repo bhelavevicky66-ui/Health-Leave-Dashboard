@@ -933,6 +933,11 @@ const App: React.FC = () => {
                 }}
               />
               <div>
+                <img
+                  src="/navgurukul-logo.png"
+                  alt="NavGurukul"
+                  className="h-16 mb-2 object-contain"
+                />
                 <h1 className="text-3xl font-bold text-[#1a1c1e] mb-1">Dashboard</h1>
                 <p className="text-lg text-gray-500 font-medium">
                   Welcome back, {user.displayName?.split(' ')[0]}
