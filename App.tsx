@@ -538,8 +538,8 @@ const App: React.FC = () => {
             </div>
 
             <div className="text-center mb-10">
-              <h1 className="text-[32px] font-extrabold text-[#1a1c1e] mb-3 leading-[1.2] tracking-tight">Campus Learning Dashboard</h1>
-              <p className="text-gray-500 font-medium text-[15px]">Sign in to access your learning journey</p>
+              <h1 className="text-[32px] font-extrabold text-[#1a1c1e] mb-3 leading-[1.2] tracking-tight">Campus Leves Dashboard</h1>
+              <p className="text-gray-500 font-medium text-[15px]">Sign in to access your leave journey</p>
             </div>
 
             {/* Info Box */}
