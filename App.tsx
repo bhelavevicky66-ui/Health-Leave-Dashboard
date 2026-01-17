@@ -950,7 +950,7 @@ const App: React.FC = () => {
               </div>
               <button
                 onClick={() => setCurrentView('form')}
-                className="inline-flex items-center px-8 py-2.5 bg-[#1a73e8] text-white rounded-lg font-bold text-sm hover:bg-[#1557b0] transition-all shadow-md active:scale-95"
+                className="w-full sm:w-auto justify-center inline-flex items-center px-8 py-2.5 bg-[#1a73e8] text-white rounded-lg font-bold text-sm hover:bg-[#1557b0] transition-all shadow-md active:scale-95"
               >
                 Apply Leave Form
               </button>
