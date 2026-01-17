@@ -21,7 +21,7 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCancel, use
   const [formData, setFormData] = useState({
     studentName: userName,
     email: userEmail,
-    date: todayFormatted,
+    date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format for input
     reason: '' as LeaveReason,
     leaveTime: '' as LeaveTime
   });
@@ -51,6 +51,12 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCancel, use
 
     const finalData = {
       ...formData,
+      // Convert YYYY-MM-DD back to "Month Day, Year" for consistency
+      date: new Date(formData.date).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      }),
       reason: (formData.reason === 'Other' ? customReason : formData.reason) as LeaveReason,
       leaveTime: (formData.leaveTime === 'Other' ? customTime : formData.leaveTime) as LeaveTime
     };
@@ -144,11 +150,17 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, onCancel, use
             </div>
           </div>
 
-          {/* Date Card - Auto-filled */}
+          {/* Date Card - Editable */}
           <div className="bg-white rounded-lg border border-[#dadce0] p-6 shadow-sm">
             <label className="block text-base mb-2 text-black">Date <span className="text-[#d93025]">*</span></label>
-            <div className="text-base mb-1 font-normal text-black">{todayFormatted}</div>
-            <div className="text-xs text-gray-500 italic">Automatically captured based on today's date.</div>
+            <input
+              type="date"
+              required
+              value={formData.date}
+              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              className="w-full border-b border-[#dadce0] py-2 text-base text-black bg-[#fafafa] focus:border-[#673ab7] outline-none transition-colors"
+            />
+            <div className="text-xs text-gray-500 italic mt-2">Default is today, but you can select a past date if needed.</div>
           </div>
 
           {/* Name Card - Auto-filled */}
