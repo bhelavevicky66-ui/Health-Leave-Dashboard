@@ -349,6 +349,92 @@ const App: React.FC = () => {
     });
   }, [registeredUsers]);
 
+  const checkAndSendWeeklyReport = useCallback(async () => {
+    const now = new Date();
+    const isSunday = now.getDay() === 0;
+    const is9AM = now.getHours() === 9; // Checks for the 9th hour (09:00 - 09:59)
+
+    // Check localStorage to ensure we only send once per Sunday
+    const lastSentDate = localStorage.getItem('lastWeeklyReportDate');
+    const todayDateStr = now.toDateString();
+
+    if (!isSunday || !is9AM || lastSentDate === todayDateStr) {
+      return;
+    }
+
+    if (submissions.length === 0) return;
+
+    // Filter submissions for the last 7 days (the current week)
+    const weeklySubmissions = submissions.filter(s => isWithinLast7Days(s.date) && s.status === 'Approved');
+
+    if (weeklySubmissions.length === 0) return;
+
+    // Group by email and sum hours
+    const userHours: { [email: string]: { name: string, hours: number } } = {};
+
+    weeklySubmissions.forEach(sub => {
+      const hours = parseDurationToHours(sub.leaveTime);
+      if (!userHours[sub.email]) {
+        userHours[sub.email] = { name: sub.studentName, hours: 0 };
+      }
+      userHours[sub.email].hours += hours;
+    });
+
+    // Build the message content
+    let messageContent = "";
+    Object.entries(userHours).forEach(([email, data]) => {
+      if (data.hours > 0) {
+        const user = registeredUsers.find(u => u.email === email);
+        const mention = user?.discordId ? `<@${user.discordId}>` : `**${data.name}**`;
+        messageContent += `${mention} = **${data.hours} hour** leave so you are compset **${data.hours} hour** from today\n`;
+      }
+    });
+
+    if (!messageContent) return;
+
+    // Send to Discord
+    const payload = {
+      username: "Health Coordinator",
+      avatar_url: "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
+      embeds: [{
+        title: "📢 Weekly Health Leave Report",
+        description: "Summary of leaves taken this week. Please complete your compensation hours on Sunday.",
+        color: 15158332, // Red/Orange tint
+        fields: [
+          { name: "Student Compensation List", value: messageContent, inline: false }
+        ],
+        footer: { text: "Generated Automatically for Sunday Review" },
+        timestamp: new Date().toISOString()
+      }]
+    };
+
+    try {
+      await fetch(DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      // Mark as sent
+      localStorage.setItem('lastWeeklyReportDate', todayDateStr);
+      console.log("Weekly report sent successfully!");
+    } catch (error) {
+      console.error("Failed to send weekly report:", error);
+    }
+  }, [submissions, registeredUsers]);
+
+  // Interval to check for weekly report
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      checkAndSendWeeklyReport();
+    }, 60000); // Check every minute
+
+    // Initial check
+    checkAndSendWeeklyReport();
+
+    return () => clearInterval(intervalId);
+  }, [checkAndSendWeeklyReport]);
+
   useEffect(() => {
     // If Admin/SuperAdmin, calculate stats for ALL submissions.
     // If User, calculate stats ONLY for THEIR submissions.
