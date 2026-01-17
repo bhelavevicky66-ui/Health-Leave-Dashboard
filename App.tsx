@@ -685,7 +685,7 @@ const App: React.FC = () => {
       <nav className="bg-[#fff9f2] border-b border-[#f0e4d7] px-6 py-3 sticky top-0 z-40 shadow-sm">
         <div className="max-w-[1440px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3">
               <div className="w-12 h-10 flex items-center justify-center relative">
                 <svg viewBox="0 0 100 100" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
                   <rect x="5" y="32" width="90" height="7" fill="#1a1c1e" rx="1" />
@@ -704,17 +704,17 @@ const App: React.FC = () => {
             <div className="flex items-center gap-2 md:gap-4">
               <button
                 onClick={() => { setCurrentView('dashboard'); setStatusFilter('all'); setSubFilter('total'); }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${currentView === 'dashboard' ? 'text-[#1a73e8] bg-[#1a73e8]/5' : 'text-gray-600 hover:bg-gray-100'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm active:scale-95 whitespace-nowrap ${currentView === 'dashboard' ? 'text-[#1a73e8] bg-[#1a73e8]/10 ring-1 ring-[#1a73e8]/20' : 'text-gray-600 bg-white border border-gray-200 hover:bg-gray-50'}`}
               >
                 <LayoutDashboard className="w-4 h-4" />
-                <span className="hidden sm:inline">Dashboard</span>
+                <span>Dashboard</span>
               </button>
               <button
                 onClick={() => { setCurrentView('form'); }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${currentView === 'form' ? 'text-[#1a73e8] bg-[#1a73e8]/5' : 'text-gray-600 hover:bg-gray-100'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm active:scale-95 whitespace-nowrap ${currentView === 'form' ? 'text-[#1a73e8] bg-[#1a73e8]/10 ring-1 ring-[#1a73e8]/20' : 'text-gray-600 bg-white border border-gray-200 hover:bg-gray-50'}`}
               >
                 <FileText className="w-4 h-4" />
-                <span className="hidden sm:inline">Leave Form</span>
+                <span>Leave Form</span>
               </button>
             </div>
           </div>
