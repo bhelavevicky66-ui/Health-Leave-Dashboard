@@ -225,6 +225,10 @@ const App: React.FC = () => {
     const user = registeredUsers.find(u => u.email === submission.email);
     const mention = user?.discordId ? `<@${user.discordId}>` : `**${submission.studentName}**`;
 
+    // Find the Admin's Discord ID
+    const adminUser = registeredUsers.find(u => u.email === SUPER_ADMIN_EMAIL);
+    const adminMention = adminUser?.discordId ? `<@${adminUser.discordId}>` : `<@${DISCORD_MENTION_ID}>`;
+
     const payload = {
       username: "Campus Health Leave",
       avatar_url: "https://cdn-icons-png.flaticon.com/512/3063/3063191.png",
@@ -239,9 +243,9 @@ const App: React.FC = () => {
           { name: "Leave Date", value: submission.date, inline: true },
           { name: "Duration", value: submission.leaveTime, inline: true },
           { name: "Total Hours", value: `${parseDurationToHours(submission.leaveTime)} Hours`, inline: true },
-          { name: "Note", value: `\`\`\`You have taken ${parseDurationToHours(submission.leaveTime)} hours health leave this week, so you need to complete them on Sunday.\`\`\``, inline: false }
-        ],
-        timestamp: new Date().toISOString()
+          { name: "Note", value: `\`\`\`You have taken ${parseDurationToHours(submission.leaveTime)} hours health leave this week, so you need to complete them on Sunday.\`\`\``, inline: false },
+          { name: "Admin", value: adminMention, inline: true }
+        ]
       }]
     };
 
