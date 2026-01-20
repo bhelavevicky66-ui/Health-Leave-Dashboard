@@ -1,0 +1,12 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/discord/:path*",
+            "destination": "https://discord.com/api/webhooks/:path*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
