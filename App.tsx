@@ -223,7 +223,7 @@ const App: React.FC = () => {
   const sendDiscordNotification = async (submission: Submission) => {
     // Find the user's Discord ID
     const user = registeredUsers.find(u => u.email === submission.email);
-    const mention = user?.discordId ? `<@${user.discordId}>` : `**${submission.studentName}**`;
+    const mention = user?.discordId ? `<@${user.discordId}>` : `**${submission.studentName || "Student"}**`;
 
     // Find the Admin's Discord ID
     const adminUser = registeredUsers.find(u => u.email === SUPER_ADMIN_EMAIL);
@@ -237,14 +237,14 @@ const App: React.FC = () => {
         description: `A new leave request has been submitted and is awaiting review.\n\n${mention}`,
         color: 1733608,
         fields: [
-          { name: "Student Name", value: submission.studentName, inline: true },
-          { name: "Email", value: submission.email, inline: true },
-          { name: "Reason", value: submission.reason, inline: true },
-          { name: "Leave Date", value: submission.date, inline: true },
-          { name: "Duration", value: submission.leaveTime, inline: true },
+          { name: "Student Name", value: submission.studentName || "N/A", inline: true },
+          { name: "Email", value: submission.email || "N/A", inline: true },
+          { name: "Reason", value: submission.reason || "N/A", inline: true },
+          { name: "Leave Date", value: submission.date || "N/A", inline: true },
+          { name: "Duration", value: submission.leaveTime || "N/A", inline: true },
           { name: "Total Hours", value: `${parseDurationToHours(submission.leaveTime)} Hours`, inline: true },
           { name: "Note", value: `\`\`\`You have taken ${parseDurationToHours(submission.leaveTime)} hours health leave this week, so you need to complete them on Sunday.\`\`\``, inline: false },
-          { name: "Admin", value: adminMention, inline: true }
+          { name: "Admin", value: adminMention || "Admin", inline: true }
         ]
       }]
     };
@@ -267,6 +267,7 @@ const App: React.FC = () => {
     } catch (error: any) {
       console.error('Discord error:', error);
       setDiscordStatus(`❌ Failed: ${error.message || error}`);
+      // Don't re-throw, so code continues to save to Firestore even if Discord fails
     }
   };
 
