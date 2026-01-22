@@ -399,14 +399,27 @@ const App: React.FC = () => {
 
   const checkAndSendWeeklyReport = useCallback(async () => {
     const now = new Date();
-    const isSunday = now.getDay() === 0;
-    const is9AM = now.getHours() === 9; // Checks for the 9th hour (09:00 - 09:59)
+    const day = now.getDay(); // 0 = Sunday
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
 
-    // Check localStorage to ensure we only send once per Sunday
-    const lastSentDate = localStorage.getItem('lastWeeklyReportDate');
-    const todayDateStr = now.toDateString();
+    const isSunday = day === 0;
 
-    if (!isSunday || !is9AM || lastSentDate === todayDateStr) {
+    // User requested times: 8:30, 8:40, 8:50, 8:60 (which is 9:00)
+    const validTimes = [
+      { h: 8, m: 30 },
+      { h: 8, m: 40 },
+      { h: 8, m: 50 },
+      { h: 9, m: 0 }
+    ];
+
+    const isTime = validTimes.some(t => t.h === hours && t.m === minutes);
+
+    // Check localStorage with TIME precision to allow multiple sends in one Sunday
+    const timeKey = `${now.toDateString()}-${hours}-${minutes}`;
+    const lastSentTime = localStorage.getItem('lastWeeklyReportValidTime');
+
+    if (!isSunday || !isTime || lastSentTime === timeKey) {
       return;
     }
 
@@ -418,42 +431,48 @@ const App: React.FC = () => {
     if (weeklySubmissions.length === 0) return;
 
     // Group by email and sum hours
-    const userHours: { [email: string]: { name: string, hours: number } } = {};
+    const userHours: { [email: string]: { name: string, hours: number, discordId?: string } } = {};
 
     weeklySubmissions.forEach(sub => {
       const hours = parseDurationToHours(sub.leaveTime);
       if (!userHours[sub.email]) {
-        userHours[sub.email] = { name: sub.studentName, hours: 0 };
+        // Find user to get discordId
+        const user = registeredUsers.find(u => u.email === sub.email);
+        userHours[sub.email] = { name: sub.studentName, hours: 0, discordId: user?.discordId };
       }
       userHours[sub.email].hours += hours;
     });
 
     // Build the message content
-    let messageContent = "";
+    // Find ALL Admins' Discord IDs for the header
+    const adminUsers = registeredUsers.filter(u => u.role === 'admin');
+    let adminMention = "";
+    if (adminUsers.length > 0) {
+      adminMention = adminUsers
+        .filter(u => u.discordId)
+        .map(u => `<@${u.discordId}>`)
+        .join(' ');
+    }
+
+    let messageContent = `Health Coordinator\n${adminMention}\n\n`;
+
+    let hasContent = false;
     Object.entries(userHours).forEach(([email, data]) => {
       if (data.hours > 0) {
-        const user = registeredUsers.find(u => u.email === email);
-        const mention = user?.discordId ? `<@${user.discordId}>` : `**${data.name}**`;
-        messageContent += `${mention} = **${data.hours} hour** leave so you are compset **${data.hours} hour** from today\n`;
+        hasContent = true;
+        const mention = data.discordId ? `<@${data.discordId}>` : `**${data.name}**`;
+        // English message format:
+        messageContent += `${mention} "You have taken ${data.hours} hours of leave this week, so you need to complete ${data.hours} hours today in class."\n`;
       }
     });
 
-    if (!messageContent) return;
+    if (!hasContent) return;
 
     // Send to Discord
     const payload = {
       username: "Health Coordinator",
       avatar_url: "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
-      embeds: [{
-        title: "📢 Weekly Health Leave Report",
-        description: "Summary of leaves taken this week. Please complete your compensation hours on Sunday.",
-        color: 15158332, // Red/Orange tint
-        fields: [
-          { name: "Student Compensation List", value: messageContent, inline: false }
-        ],
-        footer: { text: "Generated Automatically for Sunday Review" },
-        timestamp: new Date().toISOString()
-      }]
+      content: messageContent // Using content instead of embed for mentions to work properly in the body list
     };
 
     try {
@@ -463,9 +482,9 @@ const App: React.FC = () => {
         body: JSON.stringify(payload)
       });
 
-      // Mark as sent
-      localStorage.setItem('lastWeeklyReportDate', todayDateStr);
-      console.log("Weekly report sent successfully!");
+      // Mark as sent for this specific time slot
+      localStorage.setItem('lastWeeklyReportValidTime', timeKey);
+      console.log(`Weekly report sent successfully for ${timeKey}!`);
     } catch (error) {
       console.error("Failed to send weekly report:", error);
     }
