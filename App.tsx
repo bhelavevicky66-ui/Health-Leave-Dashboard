@@ -55,7 +55,7 @@ import ManageAdminsModal from './components/ManageAdminsModal';
 const DISCORD_WEBHOOK_URL = "/api/discord/1423267890227839009/Fa0y_SNlNX7d_gaHnUvoChs3N21DbApEF7MigvF2Nq_hJhA2icbsTWz4LcoXxpGDQyPb";
 const DISCORD_MENTION_ID = "1385109379845591062";
 // const ALLOWED_DOMAIN = "@gmail.com"; // Removed restriction
-const SUPER_ADMIN_EMAIL = "bhelavevicky66@gmail.com";
+const SUPER_ADMIN_EMAIL = "vickybhelave25@navgurukul.org";
 
 const getTodayString = () => new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -122,6 +122,14 @@ const App: React.FC = () => {
         // 1. IMMEDIATE UI UPDATE
         // ALLOW ANY EMAIL
         if (currentUser.email) {
+          if (!currentUser.email.endsWith('@navgurukul.org')) {
+            signOut(auth).catch(console.error);
+            setUser(null);
+            setAuthError("Only @navgurukul.org email addresses are allowed.");
+            setLoading(false);
+            return;
+          }
+
           setUser(currentUser);
           setAuthError(null);
 
@@ -207,8 +215,13 @@ const App: React.FC = () => {
     setAuthError(null);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      // const email = result.user.email;
-      // No domain check needed anymore
+      const email = result.user.email;
+
+      if (!email?.endsWith('@navgurukul.org')) {
+        await signOut(auth);
+        setAuthError("Only @navgurukul.org email addresses are allowed.");
+        return;
+      }
     } catch (error) {
       console.error("Login failed:", error);
       setAuthError("Login failed. Please try again.");
