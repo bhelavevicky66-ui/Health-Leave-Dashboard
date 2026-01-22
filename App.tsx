@@ -238,9 +238,21 @@ const App: React.FC = () => {
     const user = registeredUsers.find(u => u.email === submission.email);
     const mention = user?.discordId ? `<@${user.discordId}>` : `**${submission.studentName || "Student"}**`;
 
-    // Find the Admin's Discord ID
-    const adminUser = registeredUsers.find(u => u.email === SUPER_ADMIN_EMAIL);
-    const adminMention = adminUser?.discordId ? `<@${adminUser.discordId}>` : `<@${DISCORD_MENTION_ID}>`;
+    // Find ALL Admins' Discord IDs (excluding Super Admin if they are not in this list, or just all admins)
+    // User request: "superadmin ko tag hoke nhi jan chiye admin ko tag hoke janc hiye"
+    const adminUsers = registeredUsers.filter(u => u.role === 'admin');
+
+    let adminMention = "Admin";
+    if (adminUsers.length > 0) {
+      const mentions = adminUsers
+        .filter(u => u.discordId) // Only those with Discord IDs
+        .map(u => `<@${u.discordId}>`)
+        .join(' ');
+
+      if (mentions) {
+        adminMention = mentions;
+      }
+    }
 
     const payload = {
       username: "Campus Health Leave",
@@ -257,7 +269,7 @@ const App: React.FC = () => {
           { name: "Duration", value: submission.leaveTime || "N/A", inline: true },
           { name: "Total Hours", value: `${parseDurationToHours(submission.leaveTime)} Hours`, inline: true },
           { name: "Note", value: `\`\`\`You have taken ${parseDurationToHours(submission.leaveTime)} hours health leave this week, so you need to complete them on Sunday.\`\`\``, inline: false },
-          { name: "Admin", value: adminMention || "Admin", inline: true }
+          { name: "Admin", value: adminMention, inline: true }
         ]
       }]
     };
