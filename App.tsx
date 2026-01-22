@@ -350,13 +350,27 @@ const App: React.FC = () => {
     }
   };
 
-  const isWithinLast7Days = (dateStr: string) => {
+  // Changed from rolling 7 days to Current Week (Reset on Monday)
+  const isCurrentWeek = (dateStr: string) => {
     try {
       const subDate = new Date(dateStr);
       const today = new Date();
-      const diffTime = Math.abs(today.getTime() - subDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays <= 7;
+
+      // Get current day (0=Sun, 1=Mon, ..., 6=Sat)
+      const currentDay = today.getDay();
+
+      // Calculate distance to previous Monday
+      // If Mon(1), dist=0. If Sun(0), dist=6.
+      const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
+
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - daysToMonday);
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      // Compare dates (ensure we reset subDate time to comparison)
+      // Actually subDate from string usually has 00:00 or depends on parsing, 
+      // but simple comparison >= should work if subDate is effectively "start of that day"
+      return subDate >= startOfWeek;
     } catch (e) {
       return false;
     }
@@ -375,10 +389,10 @@ const App: React.FC = () => {
       approved: approvedData.length,
       campusTotal: registeredUsers.length,
       todayApproved: approvedData.filter(s => s.date === todayStr).length,
-      weeklyApproved: approvedData.filter(s => isWithinLast7Days(s.date)).length,
+      weeklyApproved: approvedData.filter(s => isCurrentWeek(s.date)).length,
       fullDayApproved: approvedData.filter(s => s.leaveTime === '1 Day').length,
       weeklyApprovedHours: approvedData
-        .filter(s => isWithinLast7Days(s.date))
+        .filter(s => isCurrentWeek(s.date))
         .reduce((acc, curr) => acc + parseDurationToHours(curr.leaveTime), 0)
     });
   }, [registeredUsers]);
@@ -398,8 +412,8 @@ const App: React.FC = () => {
 
     if (submissions.length === 0) return;
 
-    // Filter submissions for the last 7 days (the current week)
-    const weeklySubmissions = submissions.filter(s => isWithinLast7Days(s.date) && s.status === 'Approved');
+    // Filter submissions for the current week (Monday -> Sunday)
+    const weeklySubmissions = submissions.filter(s => isCurrentWeek(s.date) && s.status === 'Approved');
 
     if (weeklySubmissions.length === 0) return;
 
@@ -499,8 +513,8 @@ const App: React.FC = () => {
 
     if (statusFilter === 'all') {
       if (subFilter === 'today') result = result.filter(s => s.date === getTodayString());
-      if (subFilter === 'weekly') result = result.filter(s => isWithinLast7Days(s.date));
-      if (subFilter === 'weeklyHours') result = result.filter(s => isWithinLast7Days(s.date));
+      if (subFilter === 'weekly') result = result.filter(s => isCurrentWeek(s.date));
+      if (subFilter === 'weeklyHours') result = result.filter(s => isCurrentWeek(s.date));
     }
 
     return result;
