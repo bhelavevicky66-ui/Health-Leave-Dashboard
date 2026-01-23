@@ -269,7 +269,7 @@ const App: React.FC = () => {
           { name: "Duration", value: submission.leaveTime || "N/A", inline: true },
           { name: "Total Hours", value: `${parseDurationToHours(submission.leaveTime)} Hours`, inline: true },
           { name: "Note", value: `\`\`\`You have taken ${parseDurationToHours(submission.leaveTime)} hours health leave this week, so you need to complete them on Sunday.\`\`\``, inline: false },
-          { name: "Admin", value: adminMention, inline: true }
+          { name: "Health Coordinator", value: adminMention, inline: true }
         ]
       }]
     };
