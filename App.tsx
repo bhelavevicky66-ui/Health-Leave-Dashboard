@@ -301,14 +301,24 @@ const App: React.FC = () => {
     const user = registeredUsers.find(u => u.email === submission.email);
     const mention = user?.discordId ? `<@${user.discordId}>` : `**${submission.studentName}**`;
 
-    // Find the Admin's Discord ID
-    const adminUser = registeredUsers.find(u => u.email === SUPER_ADMIN_EMAIL);
-    const adminMention = adminUser?.discordId ? `<@${adminUser.discordId}>` : `Admin`;
+    // Find ALL Admins' Discord IDs for the "OK" confirmation
+    const adminUsers = registeredUsers.filter(u => u.role === 'admin');
+    let adminMention = "Admin";
+    if (adminUsers.length > 0) {
+      const mentions = adminUsers
+        .filter(u => u.discordId)
+        .map(u => `<@${u.discordId}>`)
+        .join(' ');
+
+      if (mentions) {
+        adminMention = mentions;
+      }
+    }
 
     const payload = {
       username: "Health Coordinator",
       avatar_url: "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
-      // Moved ✅ to the second line next to the student name/mention
+      // Tag Admin(s) followed by OK
       content: `${adminMention} OK\n✅ ${mention}, Your leave for **${submission.date}** has been **Approved**! You are now cleared for health leave.`
     };
 
@@ -328,14 +338,24 @@ const App: React.FC = () => {
     const user = registeredUsers.find(u => u.email === submission.email);
     const mention = user?.discordId ? `<@${user.discordId}>` : `**${submission.studentName}**`;
 
-    // Find the Admin's Discord ID
-    const adminUser = registeredUsers.find(u => u.email === SUPER_ADMIN_EMAIL);
-    const adminMention = adminUser?.discordId ? `<@${adminUser.discordId}>` : `Admin`;
+    // Find ALL Admins' Discord IDs for the "OK" confirmation
+    const adminUsers = registeredUsers.filter(u => u.role === 'admin');
+    let adminMention = "Admin";
+    if (adminUsers.length > 0) {
+      const mentions = adminUsers
+        .filter(u => u.discordId)
+        .map(u => `<@${u.discordId}>`)
+        .join(' ');
+
+      if (mentions) {
+        adminMention = mentions;
+      }
+    }
 
     const payload = {
       username: "Health Coordinator",
       avatar_url: "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
-      // Moved ❌ to the second line next to the student name/mention
+      // Tag Admin(s) followed by OK
       content: `${adminMention} OK\n❌ ${mention}, Your leave for **${submission.date}** has been **Rejected**.\n**Reason**: ${reason}`
     };
 
