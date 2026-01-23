@@ -240,7 +240,7 @@ const App: React.FC = () => {
 
     // Find ALL Admins' Discord IDs (excluding Super Admin if they are not in this list, or just all admins)
     // User request: "superadmin ko tag hoke nhi jan chiye admin ko tag hoke janc hiye"
-    const adminUsers = registeredUsers.filter(u => u.role === 'admin');
+    const adminUsers = registeredUsers.filter(u => u.role === 'admin' && u.email !== SUPER_ADMIN_EMAIL);
 
     let adminMention = "Admin";
     if (adminUsers.length > 0) {
