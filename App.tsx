@@ -207,6 +207,11 @@ const App: React.FC = () => {
     return (userDoc?.role as UserRole) || 'user';
   }, [user, registeredUsers]);
 
+  const currentUserData = useMemo(() => {
+    if (!user || !user.email) return null;
+    return registeredUsers.find(u => u.email === user.email);
+  }, [user, registeredUsers]);
+
   const canApprove = currentUserRole === 'admin' || currentUserRole === 'super_admin';
   const canViewAll = currentUserRole === 'admin' || currentUserRole === 'super_admin';
   const canDelete = currentUserRole === 'super_admin';
@@ -1204,13 +1209,20 @@ const App: React.FC = () => {
                       <select
                         onChange={(e) => setHouseInput(e.target.value)}
                         value={houseInput}
-                        className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all cursor-pointer hover:border-blue-400"
+                        disabled={!!currentUserData?.house}
+                        className={`w-full p-2.5 border rounded-lg font-medium outline-none transition-all appearance-none ${!!currentUserData?.house
+                          ? 'bg-gray-200 border-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-white border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer hover:border-blue-400'
+                          }`}
                       >
                         <option value="" disabled>Select your house</option>
                         <option value="Bhairav">Bhairav</option>
                         <option value="Malhar">Malhar</option>
                         <option value="Bageshree">Bageshree</option>
                       </select>
+                      {!!currentUserData?.house && (
+                        <p className="text-[10px] text-gray-400 mt-1.5 font-medium">Contact admin to change house</p>
+                      )}
                     </div>
                   </div>
 
