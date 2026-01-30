@@ -94,6 +94,7 @@ const App: React.FC = () => {
   const [discordIdInput, setDiscordIdInput] = useState('');
   const [houseInput, setHouseInput] = useState('');
   const [showDiscordId, setShowDiscordId] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -769,7 +770,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#fafbfc] font-sans">
       <nav className="bg-[#fff9f2] border-b border-[#f0e4d7] px-6 py-3 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between">
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between max-[386px]:justify-center">
           <div className="flex items-center gap-6">
             <div className="hidden lg:flex items-center gap-3">
               <div className="flex items-center justify-center relative -ml-2">
@@ -781,14 +782,14 @@ const App: React.FC = () => {
             <div className="flex items-center gap-2 md:gap-4">
               <button
                 onClick={() => { setCurrentView('dashboard'); setStatusFilter('all'); setSubFilter('total'); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm active:scale-95 whitespace-nowrap ${currentView === 'dashboard' ? 'text-[#1a73e8] bg-[#1a73e8]/10 ring-1 ring-[#1a73e8]/20' : 'text-gray-600 bg-white border border-gray-200 hover:bg-gray-50'}`}
+                className={`flex items-center gap-2 px-4 max-[386px]:px-2 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm active:scale-95 whitespace-nowrap ${currentView === 'dashboard' ? 'text-[#1a73e8] bg-[#1a73e8]/10 ring-1 ring-[#1a73e8]/20' : 'text-gray-600 bg-white border border-gray-200 hover:bg-gray-50'}`}
               >
                 <LayoutDashboard className="w-4 h-4" />
                 <span>Dashboard</span>
               </button>
               <button
                 onClick={() => { setCurrentView('form'); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm active:scale-95 whitespace-nowrap ${currentView === 'form' ? 'text-[#1a73e8] bg-[#1a73e8]/10 ring-1 ring-[#1a73e8]/20' : 'text-gray-600 bg-white border border-gray-200 hover:bg-gray-50'}`}
+                className={`flex items-center gap-2 px-4 max-[386px]:px-2 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm active:scale-95 whitespace-nowrap ${currentView === 'form' ? 'text-[#1a73e8] bg-[#1a73e8]/10 ring-1 ring-[#1a73e8]/20' : 'text-gray-600 bg-white border border-gray-200 hover:bg-gray-50'}`}
               >
                 <FileText className="w-4 h-4" />
                 <span>Leave Form</span>
@@ -796,7 +797,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative max-[386px]:hidden">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-3 pl-3 pr-2 py-1.5 hover:bg-gray-100 rounded-full transition-all border border-transparent hover:border-gray-200 group"
@@ -1009,8 +1010,9 @@ const App: React.FC = () => {
               <div className="flex items-center gap-5 text-left">
                 <img
                   src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`}
-                  className="w-16 h-16 rounded-full border-4 border-white shadow-md"
+                  className="w-16 h-16 rounded-full border-4 border-white shadow-md cursor-pointer active:scale-95 transition-transform"
                   alt="profile"
+                  onClick={() => setShowMobileMenu(true)}
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${user.displayName}&background=random`
                   }}
@@ -1075,6 +1077,62 @@ const App: React.FC = () => {
           </div>
         </main>)
       }
+      {showMobileMenu && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4" onClick={() => setShowMobileMenu(false)}>
+          <div
+            className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-xl animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-4 mb-6 border-b border-gray-100 pb-4">
+              <img
+                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&background=random`}
+                className="w-12 h-12 rounded-full border border-gray-200"
+                alt="profile"
+              />
+              <div>
+                <h3 className="font-bold text-gray-900">{user.displayName}</h3>
+                <p className="text-xs text-gray-500">{user.email}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={() => { setShowUserProfile(true); setShowMobileMenu(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-700 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                <Users className="w-5 h-5 text-gray-500" />
+                View Profile
+              </button>
+
+              {currentUserRole === 'super_admin' && (
+                <button
+                  onClick={() => { setShowAdminModal(true); setShowMobileMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-purple-700 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors"
+                >
+                  <Shield className="w-5 h-5 text-purple-500" />
+                  Manage Admins
+                </button>
+              )}
+
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+              >
+                <LogOut className="w-5 h-5 text-red-500" />
+                Log Out
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowMobileMenu(false)}
+              className="mt-4 w-full py-3 text-center text-gray-500 font-medium text-sm hover:text-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {
         showUserList && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowUserList(false)}>
