@@ -712,10 +712,10 @@ const App: React.FC = () => {
           </div> */}
 
           {/* Login Card Section */}
-          <div className="bg-white p-12 rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] max-w-[480px] w-full relative z-10 border border-white/50 backdrop-blur-sm">
+          <div className="bg-white p-12 max-[386px]:p-5 rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] max-w-[480px] w-full relative z-10 border border-white/50 backdrop-blur-sm">
             {/* Navgurukul Logo/Brand */}
             {/* Navgurukul Logo/Brand */}
-            <div className="flex justify-center mb-10">
+            <div className="flex justify-center mb-10 max-[386px]:mb-5">
               <img
                 src="/navgurukul-logo.png"
                 alt="NavGurukul"
@@ -724,12 +724,12 @@ const App: React.FC = () => {
             </div>
 
             <div className="text-center mb-10">
-              <h1 className="text-[32px] font-extrabold text-[#1a1c1e] mb-3 leading-[1.2] tracking-tight">Campus Leves Dashboard</h1>
+              <h1 className="text-[32px] max-[386px]:text-2xl font-extrabold text-[#1a1c1e] mb-3 leading-[1.2] tracking-tight">Campus Leves Dashboard</h1>
               <p className="text-gray-500 font-medium text-[15px]">Sign in to access your leave journey</p>
             </div>
 
             {/* Info Box */}
-            <div className="bg-[#eff6ff] border border-[#dbeafe] rounded-2xl p-5 mb-10 text-left flex items-start gap-4 mx-2">
+            <div className="bg-[#eff6ff] border border-[#dbeafe] rounded-2xl p-5 mb-10 max-[386px]:mb-5 text-left flex items-start gap-4 mx-2">
               <div className="bg-[#2563eb] rounded-full p-1 mt-0.5 flex-shrink-0">
                 <Info className="w-3.5 h-3.5 text-white stroke-[3px]" />
               </div>
@@ -742,7 +742,7 @@ const App: React.FC = () => {
             </div>
 
             {authError && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 text-sm font-medium animate-in slide-in-from-top-2">
+              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 text-sm font-medium animate-in slide-in-from-top-2 max-[386px]:hidden">
                 <ShieldAlert className="w-5 h-5 flex-shrink-0" />
                 <span>{authError}</span>
               </div>
